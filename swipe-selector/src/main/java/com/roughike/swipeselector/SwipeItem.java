@@ -1,3 +1,8 @@
+package com.roughike.swipeselector;
+
+import android.graphics.drawable.Drawable;
+import android.support.annotation.StringRes;
+
 /*
  * SwipeSelector library for Android
  * Copyright (c) 2016 Iiro Krankka (http://github.com/roughike).
@@ -14,15 +19,28 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-package com.roughike.swipeselector;
-
 public class SwipeItem {
-    static final String UNSELECTED_ITEM_VALUE = "com.roughike.swipeselector.UNSELECTED_ITEM_VALUE";
-    private String value;
-    private String title;
-    private String description;
+    /**
+     * This boolean is checked when the SwipeAdapters
+     * {@link SwipeAdapter#setItems(SwipeItem... items)} method
+     * is called. If this is true, meaning there are SwipeItems
+     * that are initialized using String resources, we're looping
+     * through all of them and getting the strings where applicable.
+     *
+     * Otherwise, we'll just skip the loop as it's unnecessary.
+     */
+    protected static boolean checkForStringResources = false;
 
-    SwipeItem() {
+    public Object value;
+    public String title;
+    public Drawable image;
+    public String description;
+
+    protected boolean isTitleImage;
+    protected int titleRes = -1;
+    protected int descriptionRes = -1;
+
+    private SwipeItem() {
     }
 
     /**
@@ -36,81 +54,67 @@ public class SwipeItem {
      * "Pizzas are healthy, because pizza sauces contain tomato. And tomatoes
      * are healthy, just ask anyone."
      */
-    public SwipeItem(String value, String title, String description) {
+    public SwipeItem(Object value, String title, String description) {
         this.value = value;
         this.title = title;
         this.description = description;
     }
 
     /**
-     * Set the value for this SwipeItem.
+     * Constructor for creating a new item for the {@link SwipeSelector}
+     * using String resources.
      *
-     * @param value The unique value for this item, which is used for identifying which
-     *           item the user has selected in this SwipeSelector.
-     */
-    void setValue(String value) {
-        this.value = value;
-    }
-
-    /**
-     * Set the title for this SwipeItem.
-     *
+     * @param value The value for this item, which should generally be unique
+     * for current {@link SwipeSelector}. This is used the same
+     * way one might use radio buttons on webpages with HTML.
      * @param title A short descriptive title for this item, such as "Pizza".
-     */
-    void setTitle(String title) {
-        this.title = title;
-    }
-
-    /**
-     * Set the description for this SwipeItem.
-     *
      * @param description Longer explanation related to the title, such as
-     *                    "Pizzas are healthy, because pizza sauces contain tomato. And tomatoes
-     *                    are healthy, just ask anyone."
+     * "Pizzas are healthy, because pizza sauces contain tomato. And tomatoes
+     * are healthy, just ask anyone."
      */
-    void setDescription(String description) {
-        this.description = description;
+    public SwipeItem(Object value, @StringRes int title, @StringRes int description) {
+        checkForStringResources = true;
+
+        this.value = value;
+        this.titleRes = title;
+        this.descriptionRes = description;
     }
 
     /**
-     * Gets the value for this SwipeItem.
+     * Constructor for creating a new item for the {@link SwipeSelector}
+     * using String resources.
      *
-     * @return
-     */
-    public String getValue() {
-        return value;
+     * @param value The value for this item, which should generally be unique
+     * for current {@link SwipeSelector}. This is used the same
+     * way one might use radio buttons on webpages with HTML.
+     * @param title A short descriptive title for this item, such as "Pizza" or an image.
+     * @param description Longer explanation related to the title or, if title is an image, the [Accessibility] description for image.
+     * @param isImage if the title is an image resource.
+     **/
+    public SwipeItem(Object value, @StringRes int title, int description, boolean isImage) {
+        //TODO throw exception if title isn't image and should
+        checkForStringResources = true;
+        isTitleImage = isImage;
+
+        this.value = value;
+        this.titleRes = title;
+        this.descriptionRes = description;
     }
 
     /**
-     * Gets the title from a string resource (if available), or straight
-     * from the "title" field.
+     * Constructor for creating a new item for the {@link SwipeSelector}.
      *
-     * @return the title for this SwipeItem.
+     * @param value The value for this item, which should generally be unique
+     * for current {@link SwipeSelector}. This is used the same
+     * way one might use radio buttons on webpages with HTML.
+     * @param image A small title for this item.
+     * @param contentDescription [Accessibility] Description for image
      */
-    public String getTitle() {
-        return title;
-    }
+    public SwipeItem(Object value, Drawable image, String contentDescription) {
+        isTitleImage = true;
 
-    /**
-     * Gets the description from a string resource (if available), or straight
-     * from the "description" field.
-     *
-     * @return the description for this SwipeItem.
-     */
-    public String getDescription() {
-        return description;
-    }
-
-    /**
-     * Determines if this item is a unselected state item, in other words, not a real possible
-     * selection for this SwipeSelector.
-     *
-     * Unselected items are specifed by the "swipe_unselectedItemTitle" and "swipe_unselectedItemDescription"
-     * attributes and created automagically for you if those attributes exist.
-     *
-     * @return true if this item is a real selected item by the user, false otherwise.
-     */
-    boolean isRealItem() {
-        return !UNSELECTED_ITEM_VALUE.equals(value);
+        this.value = value;
+        this.image = image;
+        this.description = contentDescription;
     }
 }

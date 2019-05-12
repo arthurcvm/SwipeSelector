@@ -1,3 +1,24 @@
+package com.roughike.swipeselector;
+
+import android.animation.ObjectAnimator;
+import android.content.Context;
+import android.graphics.Typeface;
+import android.graphics.drawable.ShapeDrawable;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.v4.content.ContextCompat;
+import android.support.v4.view.PagerAdapter;
+import android.support.v4.view.ViewPager;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.TextView;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
 /*
  * SwipeSelector library for Android
  * Copyright (c) 2016 Iiro Krankka (http://github.com/roughike).
@@ -14,28 +35,6 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
-package com.roughike.swipeselector;
-
-import android.animation.ObjectAnimator;
-import android.content.Context;
-import android.graphics.Typeface;
-import android.graphics.drawable.ShapeDrawable;
-import android.os.Build;
-import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
-import android.support.v4.view.PagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.TextView;
-
-import java.util.List;
-
 class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPager.OnPageChangeListener {
     private static final String STATE_CURRENT_POSITION = "STATE_CURRENT_POSITION";
     private static final String TAG_CIRCLE = "TAG_CIRCLE";
@@ -43,135 +42,261 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
     // For the left and right buttons when they're not visible
     private static final String TAG_HIDDEN = "TAG_HIDDEN";
 
-    private final Context context;
+    private final Context mContext;
 
-    private final ViewPager viewPager;
-    private final ViewGroup indicatorContainer;
+    private final ViewPager mViewPager;
+    private final ViewGroup mIndicatorContainer;
 
-    private final LinearLayout.LayoutParams circleParams;
-    private final ShapeDrawable inActiveCircleDrawable;
-    private final ShapeDrawable activeCircleDrawable;
+    private final LinearLayout.LayoutParams mCircleParams;
+    private final ShapeDrawable mInActiveCircleDrawable;
+    private final ShapeDrawable mActiveCircleDrawable;
 
-    private Typeface customTypeFace;
-    private final int titleTextAppearance;
-    private final int descriptionTextAppearance;
-    private final int descriptionGravity;
+    private Typeface mCustomTypeFace;
+    private final int mTitleTextAppearance;
+    private final int mDescriptionTextAppearance;
+    private final int mDescriptionGravity;
 
-    private final ImageView leftButton;
-    private final ImageView rightButton;
+    private final ImageView mLeftButton;
+    private final ImageView mRightButton;
 
-    private final int sixteenDp;
-    private final int contentLeftPadding;
-    private final int contentRightPadding;
+    private final int mSweetSixteen;
+    private final int mContentLeftPadding;
+    private final int mContentRightPadding;
 
-    private OnSwipeItemSelectedListener onItemSelectedListener;
-    private List<SwipeItem> items;
-    private int currentPosition;
+    private OnSwipeItemSelectedListener mOnItemSelectedListener;
+    private ArrayList<SwipeItem> mItems;
+    private int mCurrentPosition;
 
-    private SwipeAdapter(Builder builder) {
-        context = builder.viewPager.getContext();
+    private SwipeAdapter(ViewPager viewPager, ViewGroup indicatorContainer, int indicatorSize, int indicatorMargin,
+                         int inActiveIndicatorColor, int activeIndicatorColor, int leftButtonResource, int rightButtonResource,
+                         ImageView leftButton, ImageView rightButton, String customFontPath, int titleTextAppearance, int descriptionTextAppearance,
+                         int descriptionGravity) {
+        mContext = viewPager.getContext();
 
-        viewPager = builder.viewPager;
-        viewPager.addOnPageChangeListener(this);
+        mViewPager = viewPager;
+        mViewPager.addOnPageChangeListener(this);
 
-        indicatorContainer = builder.indicatorContainer;
-        circleParams = new LinearLayout.LayoutParams(builder.indicatorSize, builder.indicatorSize);
-        circleParams.leftMargin = builder.indicatorMargin;
+        mIndicatorContainer = indicatorContainer;
+        mCircleParams = new LinearLayout.LayoutParams(indicatorSize, indicatorSize);
+        mCircleParams.leftMargin = indicatorMargin;
 
-        inActiveCircleDrawable = Indicator.newOne(
-                builder.indicatorSize, builder.inActiveIndicatorColor);
-        activeCircleDrawable = Indicator.newOne(
-                builder.indicatorSize, builder.activeIndicatorColor);
+        mInActiveCircleDrawable = Indicator.newOne(
+                indicatorSize, inActiveIndicatorColor);
+        mActiveCircleDrawable = Indicator.newOne(
+                indicatorSize, activeIndicatorColor);
 
-        if (builder.customFontPath != null &&
-                ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && !builder.customFontPath.isEmpty())
-                        || builder.customFontPath.length() > 0)) {
-            customTypeFace = Typeface.createFromAsset(context.getAssets(),
-                    builder.customFontPath);
+        if (customFontPath != null &&
+                ((Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB && !customFontPath.isEmpty())
+                        || customFontPath.length() > 0)) {
+            mCustomTypeFace = Typeface.createFromAsset(mContext.getAssets(),
+                    customFontPath);
         }
 
-        titleTextAppearance = builder.titleTextAppearance;
-        descriptionTextAppearance = builder.descriptionTextAppearance;
-        descriptionGravity = getGravity(builder.descriptionGravity);
+        mTitleTextAppearance = titleTextAppearance;
+        mDescriptionTextAppearance = descriptionTextAppearance;
+        mDescriptionGravity = getGravity(descriptionGravity);
 
-        leftButton = builder.leftButton;
-        leftButton.setImageResource(builder.leftButtonResource);
+        mLeftButton = leftButton;
+        mLeftButton.setImageResource(leftButtonResource);
 
-        rightButton = builder.rightButton;
-        rightButton.setImageResource(builder.rightButtonResource);
+        mRightButton = rightButton;
+        mRightButton.setImageResource(rightButtonResource);
 
         // Calculate paddings for the content so the left and right buttons
         // don't overlap.
-        sixteenDp = (int) PixelUtils.dpToPixel(context, 16);
-        contentLeftPadding = ContextCompat.getDrawable(context, builder.leftButtonResource)
-                .getIntrinsicWidth() + sixteenDp;
-        contentRightPadding = ContextCompat.getDrawable(context, builder.rightButtonResource)
-                .getIntrinsicWidth() + sixteenDp;
+        mSweetSixteen = (int) PixelUtils.dpToPixel(mContext, 16);
+        mContentLeftPadding = ContextCompat.getDrawable(mContext, leftButtonResource)
+                .getIntrinsicWidth() + mSweetSixteen;
+        mContentRightPadding = ContextCompat.getDrawable(mContext, rightButtonResource)
+                .getIntrinsicWidth() + mSweetSixteen;
 
-        leftButton.setOnClickListener(this);
-        rightButton.setOnClickListener(this);
+        mLeftButton.setOnClickListener(this);
+        mRightButton.setOnClickListener(this);
 
-        leftButton.setTag(TAG_HIDDEN);
-        leftButton.setClickable(false);
+        mLeftButton.setTag(TAG_HIDDEN);
+        mLeftButton.setClickable(false);
 
-        setAlpha(0.0f, leftButton);
+        setAlpha(0.0f, mLeftButton);
+    }
+
+    /**
+     * Using the Java Builder Pattern here, because the SwipeSelector class was getting
+     * messy and that's where most will look at. This class is protected, and contains no
+     * methods that the users can use, so it's OK for this to look like absolute vomit.
+     * <p/>
+     * At least that's my opinion. But my opinions are always right.
+     */
+    protected static class Builder {
+        private ViewPager viewPager;
+        private ViewGroup indicatorContainer;
+
+        private int indicatorSize;
+        private int indicatorMargin;
+        private int inActiveIndicatorColor;
+        private int activeIndicatorColor;
+
+        private int leftButtonResource;
+        private int rightButtonResource;
+
+        private ImageView leftButton;
+        private ImageView rightButton;
+
+        private String customFontPath;
+        private int titleTextAppearance;
+        private int descriptionTextAppearance;
+        private int descriptionGravity;
+
+        protected Builder() {
+        }
+
+        protected Builder viewPager(ViewPager viewPager) {
+            this.viewPager = viewPager;
+            return this;
+        }
+
+        protected Builder indicatorContainer(ViewGroup indicatorContainer) {
+            this.indicatorContainer = indicatorContainer;
+            return this;
+        }
+
+        protected Builder indicatorSize(int indicatorSize) {
+            this.indicatorSize = indicatorSize;
+            return this;
+        }
+
+        protected Builder indicatorMargin(int indicatorMargin) {
+            this.indicatorMargin = indicatorMargin;
+            return this;
+        }
+
+        protected Builder inActiveIndicatorColor(int inActiveIndicatorColor) {
+            this.inActiveIndicatorColor = inActiveIndicatorColor;
+            return this;
+        }
+
+        protected Builder activeIndicatorColor(int activeIndicatorColor) {
+            this.activeIndicatorColor = activeIndicatorColor;
+            return this;
+        }
+
+        protected Builder leftButtonResource(int leftButtonResource) {
+            this.leftButtonResource = leftButtonResource;
+            return this;
+        }
+
+        protected Builder rightButtonResource(int rightButtonResource) {
+            this.rightButtonResource = rightButtonResource;
+            return this;
+        }
+
+        protected Builder leftButton(ImageView leftButton) {
+            this.leftButton = leftButton;
+            return this;
+        }
+
+        protected Builder rightButton(ImageView rightButton) {
+            this.rightButton = rightButton;
+            return this;
+        }
+
+        protected Builder customFontPath(String customFontPath) {
+            this.customFontPath = customFontPath;
+            return this;
+        }
+
+        protected Builder titleTextAppearance(int titleTextAppearance) {
+            this.titleTextAppearance = titleTextAppearance;
+            return this;
+        }
+
+        protected Builder descriptionTextAppearance(int descriptionTextAppearance) {
+            this.descriptionTextAppearance = descriptionTextAppearance;
+            return this;
+        }
+
+        protected Builder descriptionGravity(int descriptionGravity) {
+            this.descriptionGravity = descriptionGravity;
+            return this;
+        }
+
+        protected SwipeAdapter build() {
+            return new SwipeAdapter(viewPager,
+                    indicatorContainer,
+                    indicatorSize,
+                    indicatorMargin,
+                    inActiveIndicatorColor,
+                    activeIndicatorColor,
+                    leftButtonResource,
+                    rightButtonResource,
+                    leftButton,
+                    rightButton,
+                    customFontPath,
+                    titleTextAppearance,
+                    descriptionTextAppearance,
+                    descriptionGravity);
+        }
     }
 
     /**
      * Protected methods used by SwipeSelector
      */
-    void setOnItemSelectedListener(OnSwipeItemSelectedListener listener) {
-        onItemSelectedListener = listener;
+    protected void setOnItemSelectedListener(OnSwipeItemSelectedListener listener) {
+        mOnItemSelectedListener = listener;
     }
 
-    void setItems(List<SwipeItem> items) {
+    protected void setItems(SwipeItem... items) {
         // If there are SwipeItems constructed using String resources
         // instead of Strings, loop through all of them and get the
         // Strings.
-        this.items = items;
-        currentPosition = 0;
+        if (SwipeItem.checkForStringResources) {
+            ArrayList<SwipeItem> theRealOnes = new ArrayList<>();
+
+            for (SwipeItem item : items) {
+                if (item.titleRes != -1) {
+                    if(!item.isTitleImage) {
+                        item.title = mContext.getString(item.titleRes);
+                    } else {
+                        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                            item.image = mContext.getDrawable(item.titleRes);
+                        } else {
+                            //noinspection deprecation
+                            item.image = mContext.getResources().getDrawable(item.titleRes);
+                        }
+                    }
+                }
+
+                if (item.descriptionRes != -1) {
+                    item.description = mContext.getString(item.descriptionRes);
+                }
+
+                theRealOnes.add(item);
+            }
+
+            mItems = theRealOnes;
+
+            // reset
+            SwipeItem.checkForStringResources = false;
+        } else {
+            mItems = new ArrayList<>(Arrays.asList(items));
+        }
+
+        mCurrentPosition = 0;
         setActiveIndicator(0);
         notifyDataSetChanged();
     }
 
-    SwipeItem getSelectedItem() {
-        return items.get(currentPosition);
+    protected SwipeItem getSelectedItem() {
+        return mItems.get(mCurrentPosition);
     }
 
-    void selectItemAt(int position, boolean animate) {
-        if (position < 0 || position >= items.size()) {
-            throw new IndexOutOfBoundsException("This SwipeSelector does " +
-                    "not have an item at position " + position + ".");
-        }
-
-        viewPager.setCurrentItem(position, animate);
-    }
-
-    void selectItemWithValue(@NonNull String value, boolean animate) {
-        boolean itemExists = false;
-
-        for (int i = 0; i < items.size(); i++) {
-            if (items.get(i).getValue().equals(value)) {
-                viewPager.setCurrentItem(i, animate);
-                itemExists = true;
-                break;
-            }
-        }
-
-        if (!itemExists) {
-            throw new IllegalArgumentException("This SwipeSelector " +
-                    "does not have an item with the given value " + value + ".");
-        }
-    }
-
-    Bundle onSaveInstanceState() {
+    protected Bundle onSaveInstanceState() {
         Bundle bundle = new Bundle();
-        bundle.putInt(STATE_CURRENT_POSITION, currentPosition);
+        bundle.putInt(STATE_CURRENT_POSITION, mCurrentPosition);
         return bundle;
     }
 
-    void onRestoreInstanceState(Bundle state) {
-        viewPager.setCurrentItem(state.getInt(STATE_CURRENT_POSITION), false);
+    protected void onRestoreInstanceState(Bundle state) {
+        mViewPager.setCurrentItem(state.getInt(STATE_CURRENT_POSITION), false);
         notifyDataSetChanged();
     }
 
@@ -180,43 +305,50 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
      */
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        LinearLayout layout = (LinearLayout) View.inflate(context, R.layout.swipeselector_content_item, null);
-        TextView title = (TextView) layout.findViewById(R.id.swipeselector_content_title);
-        TextView description = (TextView) layout.findViewById(R.id.swipeselector_content_description);
+        SwipeItem slideItem = mItems.get(position);
+        LinearLayout layout;
 
-        SwipeItem slideItem = items.get(position);
-        title.setText(slideItem.getTitle());
+        if(!slideItem.isTitleImage) {
+            layout = (LinearLayout) View.inflate(mContext, R.layout.swipeselector_content_item_text, null);
 
-        if (slideItem.getDescription() == null) {
-            description.setVisibility(View.GONE);
+            TextView title = (TextView) layout.findViewById(R.id.swipeselector_content_title);
+            TextView description = (TextView) layout.findViewById(R.id.swipeselector_content_description);
+
+            title.setText(slideItem.title);
+            description.setText(slideItem.description);
+
+            // We shouldn't get here if the typeface didn't exist.
+            // But just in case, because we're paranoid.
+            if (mCustomTypeFace != null) {
+                title.setTypeface(mCustomTypeFace);
+                description.setTypeface(mCustomTypeFace);
+            }
+
+            if (mTitleTextAppearance != -1) {
+                setTextAppearanceCompat(title, mTitleTextAppearance);
+            }
+
+            if (mDescriptionTextAppearance != -1) {
+                setTextAppearanceCompat(description, mDescriptionTextAppearance);
+            }
+
+            if (mDescriptionGravity != -1) {
+                description.setGravity(mDescriptionGravity);
+            }
         } else {
-            description.setVisibility(View.VISIBLE);
-            description.setText(slideItem.getDescription());
+            layout = (LinearLayout) View.inflate(mContext, R.layout.swipeselector_content_item_image, null);
+
+            ImageView title = (ImageView) layout.findViewById(R.id.swipeselector_content_image);
+
+            title.setImageDrawable(slideItem.image);
+            title.setContentDescription(slideItem.description);
         }
 
-        // We shouldn't get here if the typeface didn't exist.
-        // But just in case, because we're paranoid.
-        if (customTypeFace != null) {
-            title.setTypeface(customTypeFace);
-            description.setTypeface(customTypeFace);
-        }
 
-        if (titleTextAppearance != -1) {
-            setTextAppearanceCompat(title, titleTextAppearance);
-        }
-
-        if (descriptionTextAppearance != -1) {
-            setTextAppearanceCompat(description, descriptionTextAppearance);
-        }
-
-        if (descriptionGravity != -1) {
-            description.setGravity(descriptionGravity);
-        }
-
-        layout.setPadding(contentLeftPadding,
-                sixteenDp,
-                contentRightPadding,
-                sixteenDp);
+        layout.setPadding(mContentLeftPadding,
+                mSweetSixteen,
+                mContentRightPadding,
+                mSweetSixteen);
 
         container.addView(layout);
         return layout;
@@ -229,7 +361,7 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
 
     @Override
     public int getCount() {
-        return items != null ? items.size() : 0;
+        return mItems != null ? mItems.size() : 0;
     }
 
     @Override
@@ -248,10 +380,10 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
 
     @Override
     public void onClick(View v) {
-        if (v.equals(leftButton) && currentPosition >= 1) {
-            viewPager.setCurrentItem(currentPosition - 1, true);
-        } else if (v.equals(rightButton) && currentPosition <= getCount() - 1) {
-            viewPager.setCurrentItem(currentPosition + 1, true);
+        if (v.equals(mLeftButton) && mCurrentPosition >= 1) {
+            mViewPager.setCurrentItem(mCurrentPosition - 1, true);
+        } else if (v.equals(mRightButton) && mCurrentPosition <= getCount() - 1) {
+            mViewPager.setCurrentItem(mCurrentPosition + 1, true);
         }
     }
 
@@ -269,34 +401,34 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
      * Private convenience methods used by this class.
      */
     private void setActiveIndicator(int position) {
-        if (indicatorContainer.findViewWithTag(TAG_CIRCLE) == null) {
+        if (mIndicatorContainer.findViewWithTag(TAG_CIRCLE) == null) {
             // No indicators yet, let's make some. Only run once per configuration.
             for (int i = 0; i < getCount(); i++) {
-                ImageView indicator = (ImageView) View.inflate(context, R.layout.swipeselector_circle_item, null);
+                ImageView indicator = (ImageView) View.inflate(mContext, R.layout.swipeselector_circle_item, null);
 
                 if (i == position) {
-                    indicator.setImageDrawable(activeCircleDrawable);
+                    indicator.setImageDrawable(mActiveCircleDrawable);
                 } else {
-                    indicator.setImageDrawable(inActiveCircleDrawable);
+                    indicator.setImageDrawable(mInActiveCircleDrawable);
                 }
 
-                indicator.setLayoutParams(circleParams);
+                indicator.setLayoutParams(mCircleParams);
                 indicator.setTag(TAG_CIRCLE);
-                indicatorContainer.addView(indicator);
+                mIndicatorContainer.addView(indicator);
             }
             return;
         }
 
-        ImageView previousActiveIndicator = (ImageView) indicatorContainer.getChildAt(currentPosition);
-        ImageView nextActiveIndicator = (ImageView) indicatorContainer.getChildAt(position);
+        ImageView previousActiveIndicator = (ImageView) mIndicatorContainer.getChildAt(mCurrentPosition);
+        ImageView nextActiveIndicator = (ImageView) mIndicatorContainer.getChildAt(position);
 
-        previousActiveIndicator.setImageDrawable(inActiveCircleDrawable);
-        nextActiveIndicator.setImageDrawable(activeCircleDrawable);
+        previousActiveIndicator.setImageDrawable(mInActiveCircleDrawable);
+        nextActiveIndicator.setImageDrawable(mActiveCircleDrawable);
 
-        currentPosition = position;
+        mCurrentPosition = position;
 
-        if (onItemSelectedListener != null) {
-            onItemSelectedListener.onItemSelected(getSelectedItem());
+        if (mOnItemSelectedListener != null) {
+            mOnItemSelectedListener.onItemSelected(getSelectedItem());
         }
     }
 
@@ -337,25 +469,25 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
 
     private void handleLeftButtonVisibility(int position) {
         if (position < 1) {
-            leftButton.setTag(TAG_HIDDEN);
-            leftButton.setClickable(false);
-            animate(0, leftButton);
-        } else if (TAG_HIDDEN.equals(leftButton.getTag())) {
-            leftButton.setTag(null);
-            leftButton.setClickable(true);
-            animate(1, leftButton);
+            mLeftButton.setTag(TAG_HIDDEN);
+            mLeftButton.setClickable(false);
+            animate(0, mLeftButton);
+        } else if (TAG_HIDDEN.equals(mLeftButton.getTag())) {
+            mLeftButton.setTag(null);
+            mLeftButton.setClickable(true);
+            animate(1, mLeftButton);
         }
     }
 
     private void handleRightButtonVisibility(int position) {
         if (position == getCount() - 1) {
-            rightButton.setTag(TAG_HIDDEN);
-            rightButton.setClickable(false);
-            animate(0, rightButton);
-        } else if (TAG_HIDDEN.equals(rightButton.getTag())) {
-            rightButton.setTag(null);
-            rightButton.setClickable(true);
-            animate(1, rightButton);
+            mRightButton.setTag(TAG_HIDDEN);
+            mRightButton.setClickable(false);
+            animate(0, mRightButton);
+        } else if (TAG_HIDDEN.equals(mRightButton.getTag())) {
+            mRightButton.setTag(null);
+            mRightButton.setClickable(true);
+            animate(1, mRightButton);
         }
     }
 
@@ -381,104 +513,6 @@ class SwipeAdapter extends PagerAdapter implements View.OnClickListener, ViewPag
             button.setAlpha(alpha);
         } else {
             button.setAlpha((int) (alpha * 255));
-        }
-    }
-
-    static class Builder {
-        private ViewPager viewPager;
-        private ViewGroup indicatorContainer;
-
-        private int indicatorSize;
-        private int indicatorMargin;
-        private int inActiveIndicatorColor;
-        private int activeIndicatorColor;
-
-        private int leftButtonResource;
-        private int rightButtonResource;
-
-        private ImageView leftButton;
-        private ImageView rightButton;
-
-        private String customFontPath;
-        private int titleTextAppearance;
-        private int descriptionTextAppearance;
-        private int descriptionGravity;
-
-        Builder() {
-        }
-
-        Builder viewPager(ViewPager viewPager) {
-            this.viewPager = viewPager;
-            return this;
-        }
-
-        Builder indicatorContainer(ViewGroup indicatorContainer) {
-            this.indicatorContainer = indicatorContainer;
-            return this;
-        }
-
-        Builder indicatorSize(int indicatorSize) {
-            this.indicatorSize = indicatorSize;
-            return this;
-        }
-
-        Builder indicatorMargin(int indicatorMargin) {
-            this.indicatorMargin = indicatorMargin;
-            return this;
-        }
-
-        Builder inActiveIndicatorColor(int inActiveIndicatorColor) {
-            this.inActiveIndicatorColor = inActiveIndicatorColor;
-            return this;
-        }
-
-        Builder activeIndicatorColor(int activeIndicatorColor) {
-            this.activeIndicatorColor = activeIndicatorColor;
-            return this;
-        }
-
-        Builder leftButtonResource(int leftButtonResource) {
-            this.leftButtonResource = leftButtonResource;
-            return this;
-        }
-
-        Builder rightButtonResource(int rightButtonResource) {
-            this.rightButtonResource = rightButtonResource;
-            return this;
-        }
-
-        Builder leftButton(ImageView leftButton) {
-            this.leftButton = leftButton;
-            return this;
-        }
-
-        Builder rightButton(ImageView rightButton) {
-            this.rightButton = rightButton;
-            return this;
-        }
-
-        Builder customFontPath(String customFontPath) {
-            this.customFontPath = customFontPath;
-            return this;
-        }
-
-        Builder titleTextAppearance(int titleTextAppearance) {
-            this.titleTextAppearance = titleTextAppearance;
-            return this;
-        }
-
-        Builder descriptionTextAppearance(int descriptionTextAppearance) {
-            this.descriptionTextAppearance = descriptionTextAppearance;
-            return this;
-        }
-
-        Builder descriptionGravity(int descriptionGravity) {
-            this.descriptionGravity = descriptionGravity;
-            return this;
-        }
-
-        SwipeAdapter build() {
-            return new SwipeAdapter(this);
         }
     }
 }
